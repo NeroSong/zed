@@ -20,7 +20,6 @@ use gpui::{
     actions, point, px, AppContext, AsyncAppContext, Context, FocusableView, MenuItem, PromptLevel,
     ReadGlobal, TitlebarOptions, View, ViewContext, VisualContext, WindowKind, WindowOptions,
 };
-use language::LanguageName;
 pub use open_listener::*;
 
 use anyhow::Context as _;
@@ -982,7 +981,7 @@ fn open_bundled_file(
     workspace: &mut Workspace,
     text: Cow<'static, str>,
     title: &'static str,
-    language: &'static impl Into<LanguageName>,
+    language: &'static str,
     cx: &mut ViewContext<Workspace>,
 ) {
     let language = workspace
