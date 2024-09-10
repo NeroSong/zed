@@ -489,7 +489,7 @@ impl PromptLibrary {
             let prompt = self.store.load(prompt_id);
             self.pending_load = cx.spawn(|this, mut cx| async move {
                 let prompt = prompt.await;
-                let markdown = language_registry.language_for_name("Markdown").await;
+                let markdown = language_registry.language_for_name("Markdown".into()).await;
                 this.update(&mut cx, |this, cx| match prompt {
                     Ok(prompt) => {
                         let title_editor = cx.new_view(|cx| {

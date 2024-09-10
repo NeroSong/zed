@@ -1023,7 +1023,7 @@ impl Context {
     }
 
     fn set_language(&mut self, cx: &mut ModelContext<Self>) {
-        let markdown = self.language_registry.language_for_name("Markdown");
+        let markdown = self.language_registry.language_for_name("Markdown".into());
         cx.spawn(|this, mut cx| async move {
             let markdown = markdown.await?;
             this.update(&mut cx, |this, cx| {

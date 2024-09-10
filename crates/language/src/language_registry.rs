@@ -102,7 +102,10 @@ struct LanguageRegistryState {
     #[cfg(any(test, feature = "test-support"))]
     fake_server_txs: HashMap<
         LanguageName,
-        Vec<futures::channel::mpsc::UnboundedSender<lsp::FakeLanguageServer>>,
+        Vec<(
+            Arc<crate::FakeLspAdapter>,
+            futures::channel::mpsc::UnboundedSender<lsp::FakeLanguageServer>,
+        )>,
     >,
 }
 
@@ -137,6 +140,17 @@ pub struct AvailableLanguage {
             + Sync,
     >,
     loaded: bool,
+}
+impl std::fmt::Debug for AvailableLanguage {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AvailableLanguage")
+            .field("id", &self.id)
+            .field("name", &self.name)
+            .field("grammar", &self.grammar)
+            .field("matcher", &self.matcher)
+            .field("loaded", &self.loaded)
+            .finish()
+    }
 }
 
 impl AvailableLanguage {
@@ -339,13 +353,23 @@ impl LanguageRegistry {
         adapter: crate::FakeLspAdapter,
     ) -> futures::channel::mpsc::UnboundedReceiver<lsp::FakeLanguageServer> {
         let language_name = language_name.into();
+        let (servers_tx, servers_rx) = futures::channel::mpsc::unbounded();
+        let adapter = Arc::new(adapter);
         self.state
             .write()
             .lsp_adapters
             .entry(language_name.clone())
             .or_default()
-            .push(CachedLspAdapter::new(Arc::new(adapter)));
-        self.fake_language_servers(language_name)
+            .push(CachedLspAdapter::new(adapter.clone()));
+
+        self.state
+            .write()
+            .fake_server_txs
+            .entry(language_name.clone().into())
+            .or_default()
+            .push((adapter, servers_tx));
+
+        servers_rx
     }
 
     #[cfg(any(feature = "test-support", test))]
@@ -354,12 +378,12 @@ impl LanguageRegistry {
         language_name: LanguageName,
     ) -> futures::channel::mpsc::UnboundedReceiver<lsp::FakeLanguageServer> {
         let (servers_tx, servers_rx) = futures::channel::mpsc::unbounded();
-        self.state
-            .write()
-            .fake_server_txs
-            .entry(language_name)
-            .or_default()
-            .push(servers_tx);
+        // self.state
+        //     .write()
+        //     .fake_server_txs
+        //     .entry(language_name)
+        //     .or_default()
+        //     .push(servers_tx);
         servers_rx
     }
 
@@ -498,9 +522,9 @@ impl LanguageRegistry {
 
     pub fn language_for_name(
         self: &Arc<Self>,
-        name: &str,
+        name: LanguageName,
     ) -> impl Future<Output = Result<Arc<Language>>> {
-        let name = UniCase::new(name);
+        let name = UniCase::new(name.0);
         let rx = self.get_or_load_language(|language_name, _| {
             if UniCase::new(&language_name.0) == name {
                 1
@@ -881,7 +905,15 @@ impl LanguageRegistry {
                     .await?;
 
                 #[cfg(any(test, feature = "test-support"))]
-                if true {
+                if let Some((adapter, tx)) = this.upgrade().and_then(|this| {
+                    this.state
+                        .write()
+                        .fake_server_txs
+                        .get_mut(&_language_name_for_tests)
+                        .map(|v| v.remove(0))
+                }) {
+                    //
+                    //
                     let capabilities = adapter
                         .as_fake()
                         .map(|fake_adapter| fake_adapter.capabilities.clone())
@@ -893,7 +925,7 @@ impl LanguageRegistry {
                     let (server, mut fake_server) = lsp::FakeLanguageServer::new(
                         server_id,
                         binary,
-                        adapter.name.0.to_string(),
+                        adapter.name.to_owned(),
                         capabilities,
                         cx.clone(),
                     );
@@ -911,22 +943,10 @@ impl LanguageRegistry {
                                 .await
                                 .is_some()
                             {
-                                if let Some(this) = this.upgrade() {
-                                    if let Some(txs) = this
-                                        .state
-                                        .write()
-                                        .fake_server_txs
-                                        .get_mut(&_language_name_for_tests)
-                                    {
-                                        for tx in txs {
-                                            tx.unbounded_send(fake_server.clone()).ok();
-                                        }
-                                    }
-                                }
+                                tx.unbounded_send(fake_server.clone()).ok();
                             }
                         })
                         .detach();
-
                     return Ok((server, options));
                 }
 

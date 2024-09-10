@@ -16,7 +16,8 @@ use gpui::{
     VisualContext, WeakView, WindowContext,
 };
 use language::{
-    proto::serialize_anchor as serialize_text_anchor, Bias, Buffer, CharKind, Point, SelectionGoal,
+    proto::serialize_anchor as serialize_text_anchor, Bias, Buffer, CharKind, LanguageName, Point,
+    SelectionGoal,
 };
 use multi_buffer::AnchorRangeExt;
 use project::{
@@ -975,7 +976,7 @@ impl SerializableItem for Editor {
                         // We don't fail here, because we'd rather not set the language if the name changed
                         // than fail to restore the buffer.
                         language_registry
-                            .language_for_name(&language_name)
+                            .language_for_name(LanguageName::new(&language_name))
                             .await
                             .ok()
                     } else {

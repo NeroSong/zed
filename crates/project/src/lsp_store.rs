@@ -2489,9 +2489,11 @@ impl LspStore {
 
             if let Some(language) = available_language {
                 for adapter in self.languages.lsp_adapters(&language.name()) {
-                    let server = self
+                    let language_server_id = self
                         .language_server_ids
-                        .get(&(worktree_id, adapter.name.clone()))
+                        .get(&(worktree_id, adapter.name.clone()));
+
+                    let server = language_server_id
                         .and_then(|id| self.as_local()?.language_servers.get(id))
                         .and_then(|server_state| {
                             if let LanguageServerState::Running { server, .. } = server_state {
@@ -4303,8 +4305,9 @@ impl LspStore {
                         ))
                     }
                 });
+            let request = this.languages.language_for_name(language_name.clone());
             cx.background_executor()
-                .spawn(this.languages.language_for_name(language_name.0.as_ref()))
+                .spawn(async move { request.await })
                 .detach();
 
             let adapter = Arc::new(SshLspAdapter::new(
@@ -7055,7 +7058,7 @@ async fn populate_labels_for_symbols(
                 unknown_path.get_or_insert(symbol.path.path.clone());
                 default_language.as_ref().and_then(|name| {
                     language_registry
-                        .language_for_name(&name.0)
+                        .language_for_name(name.clone())
                         .now_or_never()?
                         .ok()
                 })

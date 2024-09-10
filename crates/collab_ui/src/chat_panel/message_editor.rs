@@ -138,7 +138,7 @@ impl MessageEditor {
         })
         .detach();
 
-        let markdown = language_registry.language_for_name("Markdown");
+        let markdown = language_registry.language_for_name("Markdown".into());
         cx.spawn(|_, mut cx| async move {
             let markdown = markdown.await.context("failed to load Markdown language")?;
             buffer.update(&mut cx, |buffer, cx| {

@@ -26,6 +26,7 @@ pub struct HeadlessProject {
     pub lsp_store: Model<LspStore>,
     pub settings_observer: Model<SettingsObserver>,
     pub next_entry_id: Arc<AtomicUsize>,
+    pub languages: Arc<LanguageRegistry>,
 }
 
 impl HeadlessProject {
@@ -62,7 +63,7 @@ impl HeadlessProject {
                 buffer_store.clone(),
                 worktree_store.clone(),
                 environment,
-                languages,
+                languages.clone(),
                 None,
                 fs.clone(),
                 cx,
@@ -103,6 +104,7 @@ impl HeadlessProject {
             buffer_store,
             lsp_store,
             next_entry_id: Default::default(),
+            languages,
         }
     }
 

@@ -274,7 +274,7 @@ fn view_release_notes_locally(workspace: &mut Workspace, cx: &mut ViewContext<Wo
     let markdown = workspace
         .app_state()
         .languages
-        .language_for_name("Markdown");
+        .language_for_name("Markdown".into());
 
     workspace
         .with_local_workspace(cx, move |_, cx| {

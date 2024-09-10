@@ -796,7 +796,11 @@ impl LspLogView {
             self.current_server_id = Some(server_id);
             self.active_entry_kind = LogKind::Rpc;
             let (editor, editor_subscriptions) = Self::editor_for_logs(rpc_log, cx);
-            let language = self.project.read(cx).languages().language_for_name("JSON");
+            let language = self
+                .project
+                .read(cx)
+                .languages()
+                .language_for_name("JSON".into());
             editor
                 .read(cx)
                 .buffer()

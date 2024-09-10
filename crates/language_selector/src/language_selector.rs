@@ -8,7 +8,7 @@ use gpui::{
     actions, AppContext, DismissEvent, EventEmitter, FocusHandle, FocusableView, Model,
     ParentElement, Render, Styled, View, ViewContext, VisualContext, WeakView,
 };
-use language::{Buffer, LanguageRegistry};
+use language::{Buffer, LanguageName, LanguageRegistry};
 use picker::{Picker, PickerDelegate};
 use project::Project;
 use std::sync::Arc;
@@ -130,7 +130,7 @@ impl PickerDelegate for LanguageSelectorDelegate {
 
     fn confirm(&mut self, _: bool, cx: &mut ViewContext<Picker<Self>>) {
         if let Some(mat) = self.matches.get(self.selected_index) {
-            let language_name = &self.candidates[mat.candidate_id].string;
+            let language_name = LanguageName::new(&self.candidates[mat.candidate_id].string);
             let language = self.language_registry.language_for_name(language_name);
             let project = self.project.downgrade();
             let buffer = self.buffer.downgrade();

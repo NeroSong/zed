@@ -20,6 +20,7 @@ use gpui::{
     actions, point, px, AppContext, AsyncAppContext, Context, FocusableView, MenuItem, PromptLevel,
     ReadGlobal, TitlebarOptions, View, ViewContext, VisualContext, WindowKind, WindowOptions,
 };
+use language::LanguageName;
 pub use open_listener::*;
 
 use anyhow::Context as _;
@@ -951,7 +952,7 @@ fn open_telemetry_log_file(workspace: &mut Workspace, cx: &mut ViewContext<Works
                 "// Here is the data that has been reported for the current session:\n",
             );
             let content = format!("{}\n{}", header, log_suffix);
-            let json = app_state.languages.language_for_name("JSON").await.log_err();
+            let json = app_state.languages.language_for_name("JSON".into()).await.log_err();
 
             workspace.update(&mut cx, |workspace, cx| {
                 let project = workspace.project().clone();
@@ -981,10 +982,13 @@ fn open_bundled_file(
     workspace: &mut Workspace,
     text: Cow<'static, str>,
     title: &'static str,
-    language: &'static str,
+    language: &'static impl Into<LanguageName>,
     cx: &mut ViewContext<Workspace>,
 ) {
-    let language = workspace.app_state().languages.language_for_name(language);
+    let language = workspace
+        .app_state()
+        .languages
+        .language_for_name(language.into());
     cx.spawn(|workspace, mut cx| async move {
         let language = language.await.log_err();
         workspace

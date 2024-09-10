@@ -123,7 +123,7 @@ impl FeedbackModal {
             let markdown = workspace
                 .app_state()
                 .languages
-                .language_for_name("Markdown");
+                .language_for_name("Markdown".into());
 
             let project = workspace.project().clone();
             let is_local_project = project.read(cx).is_local_or_ssh();

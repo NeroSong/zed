@@ -3,7 +3,7 @@ use gpui::{
     AnyElement, AnyView, ElementId, FontStyle, FontWeight, HighlightStyle, InteractiveText,
     IntoElement, SharedString, StrikethroughStyle, StyledText, UnderlineStyle, WindowContext,
 };
-use language::{HighlightId, Language, LanguageRegistry};
+use language::{HighlightId, Language, LanguageName, LanguageRegistry};
 use std::{ops::Range, sync::Arc};
 use theme::ActiveTheme;
 use ui::LinkPreview;
@@ -323,7 +323,7 @@ pub fn render_markdown_mut(
                     new_paragraph(text, &mut list_stack);
                     current_language = if let CodeBlockKind::Fenced(language) = kind {
                         language_registry
-                            .language_for_name(language.as_ref())
+                            .language_for_name(LanguageName::new(language.as_ref()))
                             .now_or_never()
                             .and_then(Result::ok)
                     } else {

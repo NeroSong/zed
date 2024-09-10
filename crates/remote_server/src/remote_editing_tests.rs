@@ -313,6 +313,32 @@ async fn test_remote_lsp(cx: &mut TestAppContext, server_cx: &mut TestAppContext
             "Rust",
             FakeLspAdapter {
                 name: "rust-analyzer",
+                capabilities: lsp::ServerCapabilities {
+                    completion_provider: Some(lsp::CompletionOptions {
+                        trigger_characters: Some(vec![".".to_string(), ":".to_string()]),
+                        resolve_provider: Some(true),
+                        ..Default::default()
+                    }),
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+        )
+    });
+
+    let mut fake_lsp_adapter = server_cx.update_model(&headless, |headless, _| {
+        headless.languages.register_fake_lsp_adapter(
+            "Rust",
+            FakeLspAdapter {
+                name: "rust-analyzer",
+                capabilities: lsp::ServerCapabilities {
+                    completion_provider: Some(lsp::CompletionOptions {
+                        trigger_characters: Some(vec![".".to_string(), ":".to_string()]),
+                        resolve_provider: Some(true),
+                        ..Default::default()
+                    }),
+                    ..Default::default()
+                },
                 ..Default::default()
             },
         )
@@ -370,6 +396,58 @@ async fn test_remote_lsp(cx: &mut TestAppContext, server_cx: &mut TestAppContext
         let lsp_store = headless.read(cx).lsp_store.read(cx);
         assert_eq!(lsp_store.as_local().unwrap().language_servers.len(), 1);
     });
+
+    let fake_lsp_adapter = fake_lsp_adapter.next().await.unwrap();
+    let mut completion_request_handler = fake_lsp_adapter
+        .handle_request::<lsp::request::Completion, _, _>(|_, _| async move {
+            Ok(Some(lsp::CompletionResponse::Array(vec![
+                lsp::CompletionItem {
+                    label: "first_method(…)".into(),
+                    detail: Some("fn(&mut self, B) -> C".into()),
+                    text_edit: Some(lsp::CompletionTextEdit::Edit(lsp::TextEdit {
+                        new_text: "first_method($1)".to_string(),
+                        range: lsp::Range::new(
+                            lsp::Position::new(0, 14),
+                            lsp::Position::new(0, 14),
+                        ),
+                    })),
+                    insert_text_format: Some(lsp::InsertTextFormat::SNIPPET),
+                    ..Default::default()
+                },
+                lsp::CompletionItem {
+                    label: "second_method(…)".into(),
+                    detail: Some("fn(&mut self, C) -> D<E>".into()),
+                    text_edit: Some(lsp::CompletionTextEdit::Edit(lsp::TextEdit {
+                        new_text: "second_method()".to_string(),
+                        range: lsp::Range::new(
+                            lsp::Position::new(0, 14),
+                            lsp::Position::new(0, 14),
+                        ),
+                    })),
+                    insert_text_format: Some(lsp::InsertTextFormat::SNIPPET),
+                    ..Default::default()
+                },
+            ])))
+        });
+
+    // let request = fake_lsp_adapter.next().await.unwrap();
+
+    let completions = project
+        .update(cx, |project, cx| {
+            project.completions(
+                &buffer,
+                0,
+                lsp::CompletionContext {
+                    trigger_kind: lsp::CompletionTriggerKind::INVOKED,
+                    trigger_character: None,
+                },
+                cx,
+            )
+        })
+        .await
+        .unwrap();
+    completion_request_handler.next().await.unwrap();
+    assert_eq!(completions.len(), 2);
 }
 
 fn init_logger() {

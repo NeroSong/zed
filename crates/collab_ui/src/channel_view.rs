@@ -140,7 +140,7 @@ impl ChannelView {
         let project = workspace.project().to_owned();
         let channel_store = ChannelStore::global(cx);
         let language_registry = workspace.app_state().languages.clone();
-        let markdown = language_registry.language_for_name("Markdown");
+        let markdown = language_registry.language_for_name("Markdown".into());
         let channel_buffer =
             channel_store.update(cx, |store, cx| store.open_channel_buffer(channel_id, cx));
 

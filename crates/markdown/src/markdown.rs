@@ -9,7 +9,7 @@ use gpui::{
     Point, Render, StrikethroughStyle, StyleRefinement, StyledText, Task, TextLayout, TextRun,
     TextStyle, TextStyleRefinement, View,
 };
-use language::{Language, LanguageRegistry, Rope};
+use language::{Language, LanguageName, LanguageRegistry, Rope};
 use parser::{parse_links_only, parse_markdown, MarkdownEvent, MarkdownTag, MarkdownTagEnd};
 
 use std::{iter, mem, ops::Range, rc::Rc, sync::Arc};
@@ -287,7 +287,10 @@ impl MarkdownElement {
     }
 
     fn load_language(&self, name: &str, cx: &mut WindowContext) -> Option<Arc<Language>> {
-        let language_test = self.language_registry.as_ref()?.language_for_name(name);
+        let language_test = self
+            .language_registry
+            .as_ref()?
+            .language_for_name(LanguageName::new(name));
 
         let language_name = match language_test.now_or_never() {
             Some(Ok(_)) => String::from(name),
@@ -300,7 +303,7 @@ impl MarkdownElement {
         let language = self
             .language_registry
             .as_ref()?
-            .language_for_name(language_name.as_str())
+            .language_for_name(LanguageName::new(language_name.as_str()))
             .map(|language| language.ok())
             .shared();
 
